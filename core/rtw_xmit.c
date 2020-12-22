@@ -4548,8 +4548,12 @@ s32 rtw_monitor_xmit_entry(struct sk_buff *skb, struct net_device *ndev)
 
 	/* Check DATA/MGNT frames */
 	pwlanhdr = (struct rtw_ieee80211_hdr *)pframe;
-	frame_ctl = le16_to_cpu(pwlanhdr->frame_ctl);
 	if ((frame_ctl & RTW_IEEE80211_FCTL_FTYPE) == RTW_IEEE80211_FTYPE_DATA) {
+
+		if (unlikely(len < sizeof(struct rtw_ieee80211_hdr_3addr)))
+			frame_ctl = 0;
+		else
+			frame_ctl = le16_to_cpu(pwlanhdr->frame_ctl);
 
 		pattrib = &pmgntframe->attrib;
 		update_monitor_frame_attrib(padapter, pattrib);
@@ -4620,8 +4624,10 @@ s32 rtw_monitor_xmit_entry(struct sk_buff *skb, struct net_device *ndev)
 				/*
 				// TODO: 8821cu HW seq num handling has to be analyzed and compared to how 8812/8814 works.
 				if (txflags & 0x0010) { // Use preconfigured seq num
-					// NOTE: this is currently ignored due to qos_en=_FALSE and HW seq num override
-					pattrib->seqnum = GetSequence(pwlanhdr);
+					// Make sure there is enough header to actually have a sequence number
+					if (len >= sizeof(struct rtw_ieee80211_hdr_3addr)) {
+						pattrib->seqnum = GetSequence(pwlanhdr);
+					}
 				}
 				*/
 
